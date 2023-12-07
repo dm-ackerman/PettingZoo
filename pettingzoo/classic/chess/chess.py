@@ -115,6 +115,7 @@ from gymnasium.utils import EzPickle
 
 from pettingzoo import AECEnv
 from pettingzoo.classic.chess import chess_utils
+from pettingzoo.test import Traits  # warning suppression flags are here
 from pettingzoo.utils import wrappers
 from pettingzoo.utils.agent_selector import agent_selector
 
@@ -133,6 +134,10 @@ class raw_env(AECEnv, EzPickle):
         "name": "chess_v6",
         "is_parallelizable": False,
         "render_fps": 2,
+        "test_traits": [  # flags to silence expected warnings
+            Traits.OBS_DICTS,
+            Traits.OBS_SPACE,
+        ],
     }
 
     def __init__(self, render_mode: str | None = None, screen_height: int | None = 800):

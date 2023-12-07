@@ -5,6 +5,7 @@ import numpy as np
 from gymnasium.spaces import Discrete
 
 from pettingzoo import AECEnv
+from pettingzoo.test import Traits  # warning suppression flags are here
 from pettingzoo.utils import agent_selector, wrappers
 
 ROCK = 0
@@ -51,9 +52,19 @@ class raw_env(AECEnv):
     metadata which specifies which modes can be put into the render() method.
     At least human mode should be supported.
     The "name" metadata allows the environment to be pretty printed.
+    The "test_traits" metadata is optional and is used by the test suite to suppress
+    certain warnings that are expected. You can safely omit this metadata. See the
+    test traits file: pettingzoo/test/_trait_flags.py for a list of flags that can be
+    used.
     """
 
-    metadata = {"render_modes": ["human"], "name": "rps_v2"}
+    metadata = {
+        "render_modes": ["human"],
+        "name": "rps_v2",
+        "test_traits": [
+            Traits.ALL_ZEROS_OBS,  # ignore warning for observations of all zeros
+        ],
+    }
 
     def __init__(self, render_mode=None):
         """

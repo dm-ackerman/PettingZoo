@@ -1,3 +1,4 @@
+from pettingzoo.test._trait_flags import Traits
 from pettingzoo.test.api_test import api_test
 from pettingzoo.test.bombardment_test import bombardment_test
 from pettingzoo.test.manual_control_test import manual_control_test

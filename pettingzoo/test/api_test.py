@@ -8,6 +8,7 @@ import gymnasium
 import numpy as np
 
 import pettingzoo
+from pettingzoo.test._trait_flags import Traits  # warning suppression flags are here
 from pettingzoo.utils.conversions import (
     aec_to_parallel_wrapper,
     parallel_to_aec_wrapper,
@@ -71,7 +72,7 @@ env_obs_dicts = [
     "texas_holdem_no_limit_v6",
     "texas_holdem_v4",
     "go_v5",
-    "chess_v6",
+    #    "chess_v6",  # the flag to ignore this has been moved to env definition
     "connect_four_v3",
     "tictactoe_v3",
     "gin_rummy_v4",
@@ -94,7 +95,7 @@ env_obs_space = [
     "go_v5",
     "hanabi_v5",
     "knights_archers_zombies_v10",
-    "chess_v6",
+    #    "chess_v6",  # the flag to ignore this has been moved to env definition
     "connect_four_v3",
     "tictactoe_v3",
     "gin_rummy_v4",
@@ -133,13 +134,20 @@ env_neg_inf_obs = [
 ]
 
 
-def test_observation(observation, observation_0, env_name=None):
+# 'traits' variable needs to be passed to test functions that could ignore
+# some warnings
+def test_observation(observation, observation_0, env_name=None, traits=[]):
     if not isinstance(observation, np.ndarray):
-        if env_name is not None and env_name not in env_obs_dicts:
+        if (
+            env_name is not None
+            and env_name not in env_obs_dicts  # this line will be replaced ...
+            and Traits.OBS_DICTS not in traits  # .. with this one
+        ):
             warnings.warn("Observation is not a NumPy array")
         if isinstance(observation, dict) and "observation" in observation.keys():
             observation = observation["observation"]
-            test_observation(observation, observation_0, env_name)
+            # need to propagate 'traits' to most function calls
+            test_observation(observation, observation_0, env_name, traits=traits)
         if isinstance(observation, dict) and "action_mask" in observation.keys():
             test_action_mask(observation["action_mask"], env_name)
         return
@@ -169,7 +177,8 @@ def test_observation(observation, observation_0, env_name=None):
         warnings.warn("Observation numpy array is not a numeric dtype")
     if (
         np.array_equal(observation, np.zeros(observation.shape))
-        and env_name not in env_all_zeros_obs
+        and env_name not in env_all_zeros_obs  # this line will be replaced with ...
+        and Traits.ALL_ZEROS_OBS not in traits  # ... this one
     ):
         warnings.warn("Observation numpy array is all zeros.")
     if (
@@ -215,7 +224,7 @@ def test_action_mask(action_mask, env_name=None):
         )
 
 
-def test_observation_action_spaces(env, agent_0):
+def test_observation_action_spaces(env, agent_0, traits=[]):
     for agent in env.agents:
         assert isinstance(
             env.observation_space(agent), gymnasium.spaces.Space
@@ -236,7 +245,8 @@ def test_observation_action_spaces(env, agent_0):
                 isinstance(env.observation_space(agent), gymnasium.spaces.Box)
                 or isinstance(env.observation_space(agent), gymnasium.spaces.Discrete)
             )
-            and str(env.unwrapped) not in env_obs_space
+            and str(env.unwrapped) not in env_obs_space  # this line to be replaced ...
+            and Traits.OBS_SPACE not in traits  # ... with this one
         ):
             warnings.warn(
                 "Observation space for each agent probably should be gymnasium.spaces.box or gymnasium.spaces.discrete"
@@ -383,7 +393,7 @@ def test_rewards_terminations_truncations(env, agent_0):
         test_reward(env.rewards[agent])
 
 
-def play_test(env, observation_0, num_cycles):
+def play_test(env, observation_0, num_cycles, traits=[]):
     """
     plays through environment and does dynamic checks to make
     sure the state returned by the environment is
@@ -473,7 +483,7 @@ def play_test(env, observation_0, num_cycles):
                 env.observation_space(agent)["observation"].dtype
                 == prev_observe["observation"].dtype
             )
-        test_observation(prev_observe, observation_0, str(env.unwrapped))
+        test_observation(prev_observe, observation_0, str(env.unwrapped), traits=traits)
         if not isinstance(env.infos[env.agent_selection], dict):
             warnings.warn(
                 "The info of each agent should be a dict, use {} if you aren't using info"
@@ -539,6 +549,8 @@ def test_action_flexibility(env):
 
 
 def api_test(env, num_cycles=1000, verbose_progress=False):
+    traits = env.metadata.get("test_traits", [])
+
     def progress_report(msg):
         if verbose_progress:
             print(msg)
@@ -571,7 +583,7 @@ def api_test(env, num_cycles=1000, verbose_progress=False):
     if isinstance(observation_0, dict) and "observation" in observation_0:
         observation_0 = observation_0["observation"]
 
-    test_observation(observation_0, observation_0, str(env.unwrapped))
+    test_observation(observation_0, observation_0, str(env.unwrapped), traits=traits)
 
     non_observe, *_ = env.last(observe=False)
     assert non_observe is None, "last must return a None when observe=False"
@@ -580,11 +592,11 @@ def api_test(env, num_cycles=1000, verbose_progress=False):
 
     agent_0 = env.agent_selection
 
-    test_observation_action_spaces(env, agent_0)
+    test_observation_action_spaces(env, agent_0, traits)
 
     progress_report("Finished test_observation_action_spaces")
 
-    play_test(env, observation_0, num_cycles)
+    play_test(env, observation_0, num_cycles, traits=traits)
 
     progress_report("Finished play test")
 
