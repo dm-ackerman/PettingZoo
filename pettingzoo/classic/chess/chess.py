@@ -133,6 +133,10 @@ class raw_env(AECEnv, EzPickle):
         "name": "chess_v6",
         "is_parallelizable": False,
         "render_fps": 2,
+        "ignore_warnings": [
+            "ObservationNotNumPyWarning",  # <--- ignore this warning
+            "ObservationSpaceWarning",  # <--- ignore this warning
+        ],
     }
 
     def __init__(self, render_mode: str | None = None, screen_height: int | None = 800):

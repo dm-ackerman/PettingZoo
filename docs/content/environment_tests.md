@@ -20,6 +20,15 @@ The optional arguments are:
 *  `num_cycles`: runs the environment for that many cycles and checks that the output is consistent with the API.
 * `verbose_progress`: Prints out messages to indicate partial completion of the test. Useful for debugging environments.
 
+### API Test Warnings
+
+The API test will yield warnings for things that look unusual but may be valid. An example is when an observation
+returns all zeros. Since this may be a sign of an error in the observation code, it raises a warning. If an
+observation of all zeros is normal for an environment, you may want to suppress that nuisance warning. Suppressing
+warnings should not be necessary for any environments included in Petting Zoo, but you might want to do so for a
+new environment that you create. An example of doing this is shown in the
+[environment creation section](/content/environment_creation/).
+
 ## Parallel API Test
 
 This is an analogous version of the API test, but for parallel environments. You can use this test like:

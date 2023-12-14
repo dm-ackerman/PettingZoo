@@ -51,9 +51,19 @@ class raw_env(AECEnv):
     metadata which specifies which modes can be put into the render() method.
     At least human mode should be supported.
     The "name" metadata allows the environment to be pretty printed.
+    The "ignore_warnings" metadata is optional and is used by the test suite to suppress
+    certain warnings that are expected. You can safely omit this metadata. See the
+    warnings file: pettingzoo/test/pz_warnings.py for a list of warnings that can be
+    ignored.
     """
 
-    metadata = {"render_modes": ["human"], "name": "rps_v2"}
+    metadata = {
+        "render_modes": ["human"],
+        "name": "rps_v2",
+        "ignore_warnings": [
+            "ObservationAllZerosWarning",  # <--- ignore this warning
+        ],
+    }
 
     def __init__(self, render_mode=None):
         """
