@@ -1,10 +1,12 @@
 import functools
+import warnings
 
 import gymnasium
 import numpy as np
 from gymnasium.spaces import Discrete
 
 from pettingzoo import AECEnv
+from pettingzoo.test import pz_warnings
 from pettingzoo.utils import agent_selector, wrappers
 
 ROCK = 0
@@ -53,7 +55,10 @@ class raw_env(AECEnv):
     The "name" metadata allows the environment to be pretty printed.
     """
 
-    metadata = {"render_modes": ["human"], "name": "rps_v2"}
+    metadata = {
+        "render_modes": ["human"],
+        "name": "rps_v2",
+    }
 
     def __init__(self, render_mode=None):
         """
@@ -224,3 +229,15 @@ class raw_env(AECEnv):
 
         if self.render_mode == "human":
             self.render()
+
+    def set_pz_test_filters(self) -> None:
+        """
+        This function is only used by the test suite and may be omitted.
+        The purpose is to suppress certain warnings that are expected for
+        this environment. In this case, the observations in the environment
+        may be all zero. That is ok, but raises a warning because some in
+        environments that is not normal. Since it is ok here, it is ignored.
+        See the warnings file: pettingzoo/test/pz_warnings.py for a list of
+        warnings that can be ignored.
+        """
+        warnings.simplefilter("ignore", pz_warnings.ObservationAllZerosWarning)

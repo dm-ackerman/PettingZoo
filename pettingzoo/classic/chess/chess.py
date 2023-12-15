@@ -104,6 +104,7 @@ Note: the coordinates (6, 0, 12) correspond to column 6, row 0, plane 12. In che
 """
 from __future__ import annotations
 
+import warnings
 from os import path
 
 import chess
@@ -115,6 +116,7 @@ from gymnasium.utils import EzPickle
 
 from pettingzoo import AECEnv
 from pettingzoo.classic.chess import chess_utils
+from pettingzoo.test import pz_warnings
 from pettingzoo.utils import wrappers
 from pettingzoo.utils.agent_selector import agent_selector
 
@@ -134,6 +136,10 @@ class raw_env(AECEnv, EzPickle):
         "is_parallelizable": False,
         "render_fps": 2,
     }
+
+    def set_pz_test_filters(self) -> None:
+        warnings.simplefilter("ignore", pz_warnings.ObservationNotNumPyWarning)
+        warnings.simplefilter("ignore", pz_warnings.ObservationSpaceWarning)
 
     def __init__(self, render_mode: str | None = None, screen_height: int | None = 800):
         EzPickle.__init__(self, render_mode, screen_height)

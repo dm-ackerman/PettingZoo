@@ -8,6 +8,7 @@ import gymnasium
 import numpy as np
 
 import pettingzoo
+import pettingzoo.test.pz_warnings as pz_warnings
 from pettingzoo.utils.conversions import (
     aec_to_parallel_wrapper,
     parallel_to_aec_wrapper,
@@ -66,77 +67,12 @@ very uncommon and these features should be included whenever possible as all
 standard learning code requires these properties. Also not that if you do not
 have {name} it should also not be possible for you to expose the possible_agents
 list and observation_spaces, action_spaces dictionaries."""
-env_obs_dicts = [
-    "leduc_holdem_v4",
-    "texas_holdem_no_limit_v6",
-    "texas_holdem_v4",
-    "go_v5",
-    "chess_v6",
-    "connect_four_v3",
-    "tictactoe_v3",
-    "gin_rummy_v4",
-]
-env_graphical_obs = ["knights_archers_zombies_v10"]
-env_diff_obs_shapes = [
-    "simple_adversary_v3",
-    "simple_world_comm_v3",
-    "simple_tag_v3",
-    "knights_archers_zombies_v10",
-    "simple_push_v3",
-    "simple_speaker_listener_v4",
-    "simple_crypto_v3",
-]
-env_all_zeros_obs = ["knights_archers_zombies_v10"]
-env_obs_space = [
-    "leduc_holdem_v4",
-    "texas_holdem_no_limit_v6",
-    "texas_holdem_v4",
-    "go_v5",
-    "hanabi_v5",
-    "knights_archers_zombies_v10",
-    "chess_v6",
-    "connect_four_v3",
-    "tictactoe_v3",
-    "gin_rummy_v4",
-]
-env_diff_agent_obs_size = [
-    "simple_adversary_v3",
-    "simple_world_comm_v3",
-    "simple_tag_v3",
-    "simple_crypto_v3",
-    "simple_push_v3",
-    "simple_speaker_listener_v4",
-]
-env_pos_inf_obs = [
-    "simple_adversary_v3",
-    "simple_reference_v3",
-    "simple_spread_v3",
-    "simple_tag_v3",
-    "simple_world_comm_v3",
-    "multiwalker_v9",
-    "simple_crypto_v3",
-    "simple_push_v3",
-    "simple_speaker_listener_v4",
-    "simple_v3",
-]
-env_neg_inf_obs = [
-    "simple_adversary_v3",
-    "simple_reference_v3",
-    "simple_spread_v3",
-    "simple_tag_v3",
-    "simple_world_comm_v3",
-    "multiwalker_v9",
-    "simple_crypto_v3",
-    "simple_push_v3",
-    "simple_speaker_listener_v4",
-    "simple_v3",
-]
 
 
 def test_observation(observation, observation_0, env_name=None):
     if not isinstance(observation, np.ndarray):
-        if env_name is not None and env_name not in env_obs_dicts:
-            warnings.warn("Observation is not a NumPy array")
+        if env_name is not None:
+            warnings.warn(pz_warnings.ObservationNotNumPyWarning())
         if isinstance(observation, dict) and "observation" in observation.keys():
             observation = observation["observation"]
             test_observation(observation, observation_0, env_name)
@@ -157,33 +93,22 @@ def test_observation(observation, observation_0, env_name=None):
         warnings.warn("Observation is a single number")
     if not isinstance(observation, observation_0.__class__):
         warnings.warn("Observations between agents are different classes")
-    if (
-        (observation.shape != observation_0.shape)
-        and (len(observation.shape) == len(observation_0.shape))
-        and env_name not in env_diff_obs_shapes
+    if (observation.shape != observation_0.shape) and (
+        len(observation.shape) == len(observation_0.shape)
     ):
-        warnings.warn("Observations are different shapes")
+        warnings.warn(pz_warnings.DifferentObservationShapeWarning())
     if len(observation.shape) != len(observation_0.shape):
         warnings.warn("Observations have different number of dimensions")
     if not np.can_cast(observation.dtype, np.dtype("float64")):
         warnings.warn("Observation numpy array is not a numeric dtype")
-    if (
-        np.array_equal(observation, np.zeros(observation.shape))
-        and env_name not in env_all_zeros_obs
+    if np.array_equal(observation, np.zeros(observation.shape)):
+        warnings.warn(pz_warnings.ObservationAllZerosWarning())
+    if not np.all(observation >= 0) and (
+        (len(observation.shape) == 2)
+        or (len(observation.shape) == 3 and observation.shape[2] == 1)
+        or (len(observation.shape) == 3 and observation.shape[2] == 3)
     ):
-        warnings.warn("Observation numpy array is all zeros.")
-    if (
-        not np.all(observation >= 0)
-        and (
-            (len(observation.shape) == 2)
-            or (len(observation.shape) == 3 and observation.shape[2] == 1)
-            or (len(observation.shape) == 3 and observation.shape[2] == 3)
-        )
-        and env_name not in env_graphical_obs
-    ):
-        warnings.warn(
-            "The observation contains negative numbers and is in the shape of a graphical observation. This might be a bad thing."
-        )
+        warnings.warn(pz_warnings.BadGraphicObservationWarning())
 
 
 def test_action_mask(action_mask, env_name=None):
@@ -204,11 +129,8 @@ def test_action_mask(action_mask, env_name=None):
         warnings.warn("Action mask is a single number")
     if not np.can_cast(action_mask.dtype, np.dtype("float64")):
         warnings.warn("Action mask numpy array is not a numeric dtype")
-    if (
-        np.array_equal(action_mask, np.zeros(action_mask.shape))
-        and env_name not in env_all_zeros_obs
-    ):
-        warnings.warn("Action mask numpy array is all zeros (no legal actions).")
+    if np.array_equal(action_mask, np.zeros(action_mask.shape)):
+        warnings.warn(pz_warnings.ActionMaskAllZerosWarning())
     if not np.array_equal(action_mask, action_mask.astype(bool)):
         warnings.warn(
             "Action mask is not boolean (contains values other than 0 and 1)."
@@ -231,16 +153,11 @@ def test_observation_action_spaces(env, agent_0):
             "action_space should return the exact same space object (not a copy) for an agent (ensures that action space seeding works as expected). "
             "Consider decorating your action_space(self, agent) method with @functools.lru_cache(maxsize=None) to enable caching, or changing it to read from a dict such as self.action_spaces."
         )
-        if (
-            not (
-                isinstance(env.observation_space(agent), gymnasium.spaces.Box)
-                or isinstance(env.observation_space(agent), gymnasium.spaces.Discrete)
-            )
-            and str(env.unwrapped) not in env_obs_space
+        if not (
+            isinstance(env.observation_space(agent), gymnasium.spaces.Box)
+            or isinstance(env.observation_space(agent), gymnasium.spaces.Discrete)
         ):
-            warnings.warn(
-                "Observation space for each agent probably should be gymnasium.spaces.box or gymnasium.spaces.discrete"
-            )
+            warnings.warn(pz_warnings.ObservationSpaceWarning())
         if not (
             isinstance(env.action_space(agent), gymnasium.spaces.Box)
             or isinstance(env.action_space(agent), gymnasium.spaces.Discrete)
@@ -249,15 +166,11 @@ def test_observation_action_spaces(env, agent_0):
                 "Action space for each agent probably should be gymnasium.spaces.box or gymnasium.spaces.discrete"
             )
         if (not isinstance(agent, str)) and agent != "env":
-            warnings.warn(
-                "Agents are recommended to have numbered string names, like player_0"
-            )
+            warnings.warn(pz_warnings.NonStandardNameWarning())
         if not isinstance(agent, str) or not re.match(
             "[a-z]+_[0-9]+", agent
         ):  # regex for ending in _<integer>
-            warnings.warn(
-                'We recommend agents to be named in the format <descriptor>_<number>, like "player_0"'
-            )
+            warnings.warn(pz_warnings.NonStandardNameWarning())
         if not isinstance(
             env.observation_space(agent), env.observation_space(agent_0).__class__
         ):
@@ -266,11 +179,8 @@ def test_observation_action_spaces(env, agent_0):
             )
         if not isinstance(env.action_space(agent), env.action_space(agent).__class__):
             warnings.warn("The class of action spaces is different between two agents")
-        if (
-            env.observation_space(agent) != env.observation_space(agent_0)
-            and str(env.unwrapped) not in env_diff_agent_obs_size
-        ):
-            warnings.warn("Agents have different observation space sizes")
+        if env.observation_space(agent) != env.observation_space(agent_0):
+            warnings.warn(pz_warnings.DifferentObservationSpaceSizeWarning())
         if env.action_space(agent) != env.action_space(agent):
             warnings.warn("Agents have different action space sizes")
 
@@ -305,20 +215,10 @@ def test_observation_action_spaces(env, agent_0):
                 ), "Agent's action_space.high and action_space have different shapes"
 
         if isinstance(env.observation_space(agent), gymnasium.spaces.Box):
-            if (
-                np.any(np.equal(env.observation_space(agent).low, -np.inf))
-                and str(env.unwrapped) not in env_neg_inf_obs
-            ):
-                warnings.warn(
-                    "Agent's minimum observation space value is -infinity. This is probably too low."
-                )
-            if (
-                np.any(np.equal(env.observation_space(agent).high, np.inf))
-                and str(env.unwrapped) not in env_pos_inf_obs
-            ):
-                warnings.warn(
-                    "Agent's maximum observation space value is infinity. This is probably too high"
-                )
+            if np.any(np.equal(env.observation_space(agent).low, -np.inf)):
+                warnings.warn(pz_warnings.NegInfinityMinObservationSpaceWarning())
+            if np.any(np.equal(env.observation_space(agent).high, np.inf)):
+                warnings.warn(pz_warnings.InfinityMaxObservationSpaceWarning())
             if np.any(
                 np.equal(
                     env.observation_space(agent).low, env.observation_space(agent).high
@@ -544,82 +444,93 @@ def api_test(env, num_cycles=1000, verbose_progress=False):
             print(msg)
 
     print("Starting API test")
-    if not hasattr(env, "possible_agents"):
-        warnings.warn(missing_attr_warning.format(name="possible_agents"))
 
-    # checks that reset takes arguments called seed and options
-    env.reset(seed=0, options={"options": 1})
+    with warnings.catch_warnings():
+        try:
+            env.set_pz_test_filters()
+        except AttributeError:  # no filter function defined, that's ok
+            pass
 
-    assert isinstance(
-        env, pettingzoo.AECEnv
-    ), "Env must be an instance of pettingzoo.AECEnv"
+        if not hasattr(env, "possible_agents"):
+            warnings.warn(pz_warnings.MissingPossibleAgentsWarning())
 
-    env.reset()
-    assert not any(
-        env.terminations.values()
-    ), "terminations must all be False after reset"
-    assert not any(
-        env.truncations.values()
-    ), "truncations must all be False after reset"
+        # checks that reset takes arguments called seed and options
+        env.reset(seed=0, options={"options": 1})
 
-    assert isinstance(env.num_agents, int), "num_agents must be an integer"
-    assert env.num_agents != 0, "An environment should have a nonzero number of agents"
-    assert env.num_agents > 0, "An environment should have a positive number of agents"
+        assert isinstance(
+            env, pettingzoo.AECEnv
+        ), "Env must be an instance of pettingzoo.AECEnv"
 
-    env.reset()
-    observation_0, *_ = env.last()
-    if isinstance(observation_0, dict) and "observation" in observation_0:
-        observation_0 = observation_0["observation"]
+        env.reset()
+        assert not any(
+            env.terminations.values()
+        ), "terminations must all be False after reset"
+        assert not any(
+            env.truncations.values()
+        ), "truncations must all be False after reset"
 
-    test_observation(observation_0, observation_0, str(env.unwrapped))
-
-    non_observe, *_ = env.last(observe=False)
-    assert non_observe is None, "last must return a None when observe=False"
-
-    progress_report("Finished test_observation")
-
-    agent_0 = env.agent_selection
-
-    test_observation_action_spaces(env, agent_0)
-
-    progress_report("Finished test_observation_action_spaces")
-
-    play_test(env, observation_0, num_cycles)
-
-    progress_report("Finished play test")
-
-    assert isinstance(env.rewards, dict), "rewards must be a dict"
-    assert isinstance(env.terminations, dict), "terminations must be a dict"
-    assert isinstance(env.truncations, dict), "truncations must be a dict"
-    assert isinstance(env.infos, dict), "infos must be a dict"
-
-    assert (
-        len(env.rewards)
-        == len(env.terminations)
-        == len(env.truncations)
-        == len(env.infos)
-        == len(env.agents)
-    ), "rewards, terminations, truncations, infos and agents must have the same length"
-
-    test_rewards_terminations_truncations(env, agent_0)
-
-    test_action_flexibility(env)
-
-    progress_report("Finished test_rewards_terminations_truncations")
-
-    # checks unwrapped attribute
-    assert not isinstance(env.unwrapped, aec_to_parallel_wrapper)
-    assert not isinstance(env.unwrapped, parallel_to_aec_wrapper)
-    assert not isinstance(env.unwrapped, BaseWrapper)
-
-    # Test that if env has overridden render(), they must have overridden close() as well
-    base_render = pettingzoo.utils.env.AECEnv.render
-    base_close = pettingzoo.utils.env.AECEnv.close
-    if base_render != env.__class__.render:
+        assert isinstance(env.num_agents, int), "num_agents must be an integer"
         assert (
-            base_close != env.__class__.close
-        ), "If render method defined, then close method required"
-    else:
-        warnings.warn("Environment has not defined a render() method")
+            env.num_agents != 0
+        ), "An environment should have a nonzero number of agents"
+        assert (
+            env.num_agents > 0
+        ), "An environment should have a positive number of agents"
 
-    print("Passed API test")
+        env.reset()
+        observation_0, *_ = env.last()
+        if isinstance(observation_0, dict) and "observation" in observation_0:
+            observation_0 = observation_0["observation"]
+
+        test_observation(observation_0, observation_0, str(env.unwrapped))
+
+        non_observe, *_ = env.last(observe=False)
+        assert non_observe is None, "last must return a None when observe=False"
+
+        progress_report("Finished test_observation")
+
+        agent_0 = env.agent_selection
+
+        test_observation_action_spaces(env, agent_0)
+
+        progress_report("Finished test_observation_action_spaces")
+
+        play_test(env, observation_0, num_cycles)
+
+        progress_report("Finished play test")
+
+        assert isinstance(env.rewards, dict), "rewards must be a dict"
+        assert isinstance(env.terminations, dict), "terminations must be a dict"
+        assert isinstance(env.truncations, dict), "truncations must be a dict"
+        assert isinstance(env.infos, dict), "infos must be a dict"
+
+        assert (
+            len(env.rewards)
+            == len(env.terminations)
+            == len(env.truncations)
+            == len(env.infos)
+            == len(env.agents)
+        ), "rewards, terminations, truncations, infos and agents must have the same length"
+
+        test_rewards_terminations_truncations(env, agent_0)
+
+        test_action_flexibility(env)
+
+        progress_report("Finished test_rewards_terminations_truncations")
+
+        # checks unwrapped attribute
+        assert not isinstance(env.unwrapped, aec_to_parallel_wrapper)
+        assert not isinstance(env.unwrapped, parallel_to_aec_wrapper)
+        assert not isinstance(env.unwrapped, BaseWrapper)
+
+        # Test that if env has overridden render(), they must have overridden close() as well
+        base_render = pettingzoo.utils.env.AECEnv.render
+        base_close = pettingzoo.utils.env.AECEnv.close
+        if base_render != env.__class__.render:
+            assert (
+                base_close != env.__class__.close
+            ), "If render method defined, then close method required"
+        else:
+            warnings.warn("Environment has not defined a render() method")
+
+        print("Passed API test")
