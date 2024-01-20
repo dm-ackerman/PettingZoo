@@ -618,11 +618,12 @@ class raw_env(AECEnv, EzPickle):
             self._was_dead_step(action)
             return
 
-        action = np.asarray(action)
         agent = self.agent_selection
         if self.continuous:
-            self.move_piston(self.pistonList[self.agent_name_mapping[agent]], action)
+            # action is a np array with one item, we need a scalar
+            self.move_piston(self.pistonList[self.agent_name_mapping[agent]], action[0])
         else:
+            # action is a scalar (int), that is expected
             self.move_piston(
                 self.pistonList[self.agent_name_mapping[agent]], action - 1
             )
