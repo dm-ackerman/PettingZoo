@@ -218,7 +218,7 @@ class raw_env(AECEnv, EzPickle):
         "render_modes": ["human", "rgb_array"],
         "name": "knights_archers_zombies_v10",
         "is_parallelizable": True,
-        "render_fps": const.FPS,
+        "render_fps": 15,
         "has_manual_policy": True,
     }
 
